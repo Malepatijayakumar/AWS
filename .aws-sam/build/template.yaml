@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'customer-lambda
+
+  Sample SAM Template for customer-lambda
+
+  '
+Globals:
+  Function:
+    Runtime: java17
+    Architectures:
+    - x86_64
+    MemorySize: 512
+    Environment:
+      Variables:
+        CUSTOMERS_TABLE:
+          Ref: customerTable
+Resources:
+  customerTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: Number
+  ReadCustomerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ReadCustomerFunction
+      Handler: helloworld.ReadCustomer::handleReadCustomer
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: customerTable
+      Events:
+        CustomerEvents:
+          Type: Api
+          Properties:
+            Path: /get-customer
+            Method: GET
+    Metadata:
+      SamResourceId: ReadCustomerFunction
+  CreateCustomerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: CreateCustomerFunction
+      Handler: helloworld.CreateCustomer::handleCreateCustomerRequest
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: customerTable
+      Events:
+        CustomerEvents:
+          Type: Api
+          Properties:
+            Path: /create-customer
+            Method: POST
+    Metadata:
+      SamResourceId: CreateCustomerFunction
+Outputs:
+  CreateCustomerAPI:
+    Description: API gateway URL for creating an orders function
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
+  CreateCustomerFunction:
+    Description: Create Order Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - CreateCustomerFunction
+      - Arn
+  CreateCustomerFunctionIamRole:
+    Description: Create Order Function IAM Role ARN
+    Value:
+      Fn::GetAtt:
+      - CreateCustomerFunctionRole
+      - Arn

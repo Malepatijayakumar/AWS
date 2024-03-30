@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  customer-lambda
+
+  Sample SAM Template for customer-lambda
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Runtime: java17
+    Architectures: 
+      - x86_64
+    MemorySize: 512
+    Environment: 
+      Variables: 
+        CUSTOMERS_TABLE: !Ref customerTable
+
+Resources:
+  customerTable: 
+    Type: AWS::Serverless::SimpleTable
+    Properties: 
+        PrimaryKey: 
+            Name: id
+            Type: Number
+  ReadCustomerFunction: 
+    Type: AWS::Serverless::Function
+    Properties:
+        CodeUri: CustomerLambda
+        Handler: helloworld.ReadCustomer::handleReadCustomer
+        Policies:
+          - DynamoDBReadPolicy: 
+              TableName: !Ref customerTable
+        Events:
+          CustomerEvents:
+            Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+            Properties:
+                Path: /get-customer
+                Method: GET
+  CreateCustomerFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: CustomerLambda
+      Handler: helloworld.CreateCustomer::handleCreateCustomerRequest
+      Policies: 
+        - DynamoDBCrudPolicy: 
+            TableName: !Ref customerTable
+      Events:
+        CustomerEvents:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /create-customer
+            Method: POST
+Outputs: 
+    CreateCustomerAPI: 
+        Description: "API gateway URL for creating an orders function"
+        Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+    #Using GetAtt to get some details from the AWS
+    CreateCustomerFunction: 
+        Description: "Create Order Lambda Function ARN"
+        Value: !GetAtt CreateCustomerFunction.Arn
+    #Getting the Iam Role mapped to that lambda function
+    CreateCustomerFunctionIamRole: 
+        Description: "Create Order Function IAM Role ARN"
+        Value: !GetAtt CreateCustomerFunctionRole.Arn   
